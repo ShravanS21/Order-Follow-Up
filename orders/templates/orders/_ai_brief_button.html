@@ -1,0 +1,1 @@
+{% if is_manager %}<div class="d-flex justify-content-end mb-3"><form method="post" action="{% url 'ai_daily_brief' %}">{% csrf_token %}<button class="btn btn-outline-primary btn-sm">Generate AII daily brief</button></form></div>{% endif %}
