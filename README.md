@@ -1,4 +1,4 @@
-# NaturaX Order Follow-up System
+# Order Follow-up System
 
 A standalone Django web application for finding D2C orders that need attention and tracking follow-up through resolution. It replaces manual spreadsheet checking with data validation, configurable exception rules, assigned tasks, deadlines, dashboard summaries, daily reports, and an audit trail.
 
