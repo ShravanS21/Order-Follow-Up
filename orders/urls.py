@@ -7,6 +7,7 @@ urlpatterns = [
     path("tasks/<int:tid>", views.update_task, name="update_task"),
     path("tasks/<int:tid>/ai-draft", views.ai_draft, name="ai_draft"),
     path("ai/daily-brief", views.ai_daily_brief, name="ai_daily_brief"),
+    path("ai/copilot", views.copilot, name="copilot"),
     path("upload", views.upload, name="upload"),
     path("load-sample", views.load_sample, name="load_sample"),
     path("report", views.report, name="report"),

@@ -60,3 +60,11 @@ class AuditEntry(models.Model):
 class Setting(models.Model):
     key = models.CharField(max_length=40, primary_key=True)
     value = models.CharField(max_length=100)
+
+class KnowledgeChunk(models.Model):
+    """Embedding for a generic, non-customer-specific operations playbook entry."""
+    source = models.CharField(max_length=120, unique=True)
+    rule_code = models.CharField(max_length=40, blank=True)
+    content = models.TextField()
+    embedding = models.JSONField(default=list)
+    updated_at = models.DateTimeField(auto_now=True)

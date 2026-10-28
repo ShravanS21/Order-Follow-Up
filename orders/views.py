@@ -38,7 +38,7 @@ def employee_names():
     return sorted(set(a)|set(b))
 def build_app_context(request):
     c=cfg(); user=current_user(request)
-    return {"RULES":RULES,"MANAGER":MANAGER,"TASK_STATUSES":TASK_STATUSES,"PRIORITIES":["High","Medium","Low"],"users":[MANAGER]+employee_names(),"current_user":user,"is_manager":user==MANAGER,"cfg":c,"cfg_as_of_input":c["as_of"].replace(" ","T"),"now":now_for(c),"nav_items":[("dashboard","Dashboard"),("tasks","Tasks"),("report","Daily report"),("audit","Audit trail"),("upload","Upload data"),("settings","Rules & settings")]}
+    return {"RULES":RULES,"MANAGER":MANAGER,"TASK_STATUSES":TASK_STATUSES,"PRIORITIES":["High","Medium","Low"],"users":[MANAGER]+employee_names(),"current_user":user,"is_manager":user==MANAGER,"cfg":c,"cfg_as_of_input":c["as_of"].replace(" ","T"),"now":now_for(c),"nav_items":[("dashboard","Dashboard"),("tasks","Tasks"),("report","Daily report"),("copilot","AI Copilot"),("audit","Audit trail"),("upload","Upload data"),("settings","Rules & settings")]}
 def audit(order_id,action,detail,user,task=None): AuditEntry.objects.create(ts=real_ts(),order_id=order_id,task=task,action=action,detail=detail,user=user)
 def parse_date(s,eod=False):
     for fmt in DATE_FORMATS:
@@ -154,12 +154,12 @@ def ai_draft(request, tid):
         messages.error(request,"Only the manager or assigned employee can generate a customer draft.")
         return redirect("tasks")
     try:
-        draft=generate_customer_draft(task)
+        draft,sources=generate_customer_draft(task)
     except AIServiceError as exc:
         messages.error(request,str(exc))
         return redirect("tasks")
     audit(task.order_id,"AI_DRAFT_GENERATED","AI customer-message draft generated for employee review",user,task)
-    return render(request,"orders/ai_draft.html",{"task":task,"draft":draft})
+    return render(request,"orders/ai_draft.html",{"task":task,"draft":draft,"sources":sources})
 
 @require_POST
 def ai_daily_brief(request):
@@ -186,6 +186,24 @@ def ai_daily_brief(request):
         return redirect("dashboard")
     audit("-","AI_DAILY_BRIEF_GENERATED","Anonymized daily operations brief generated",current_user(request))
     return render(request,"orders/ai_brief.html",{"brief":brief,"metrics":metrics})
+
+def copilot(request):
+    if current_user(request)!=MANAGER:
+        messages.error(request,"The AI Copilot is available to the manager.")
+        return redirect("dashboard")
+    answer_text=""; sources=[]; tool_results=[]; question=""
+    if request.method=="POST":
+        question=request.POST.get("question","").strip()
+        if not question or len(question)>1000:
+            messages.error(request,"Enter a question of up to 1,000 characters.")
+        else:
+            try:
+                from .agent import answer
+                answer_text,sources,tool_results=answer(question)
+                audit("-","AI_COPILOT_QUERY","Manager used read-only AI Copilot; prompt and response not stored",current_user(request))
+            except AIServiceError as exc:
+                messages.error(request,str(exc))
+    return render(request,"orders/copilot.html",{"question":question,"answer":answer_text,"sources":sources,"tool_results":tool_results})
 
 @require_POST
 def update_task(request,tid):

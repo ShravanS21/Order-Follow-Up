@@ -1,0 +1,21 @@
+{% extends 'orders/base.html' %}
+{% load order_tags %}
+{% block title %}Tasks{% endblock %}
+{% block body %}
+<h5>Exception tasks <span class="small-muted">({{ tasks|length }})</span></h5>
+{% include 'orders/_filters.html' %}
+{% if not is_manager %}<div class="small-muted mb-2">You can update the status of your own tasks. Switch to the manager to reassign tasks.</div>{% endif %}
+<div class="table-responsive"><table class="table table-sm bg-white align-middle">
+<thead><tr><th>Order / customer</th><th>Exception</th><th>Priority</th><th>Action required</th><th>Deadline</th><th>Assignee &amp; status</th><th>AI assist</th></tr></thead><tbody>
+{% for t in tasks %}
+<tr class="{% if t.overdue %}overdue{% endif %}">
+ <td><strong>{{ t.order_id }}</strong><div>{{ t.customer_name }}, {{ t.phone }}</div><div class="small-muted">{{ t.value_text }} · {{ t.payment_type }}</div></td>
+ <td>{{ RULES|get_item:t.rule_code }}<div class="small-muted">{{ t.reason }}</div></td>
+ <td class="pri-{{ t.priority }}">{{ t.priority }}</td><td>{{ t.action }}</td>
+ <td>{{ t.deadline|date:'Y-m-d H:i' }}{% if t.overdue %}<div><span class="badge text-bg-danger">Overdue</span></div>{% endif %}</td>
+ <td><form method="post" action="{% url 'update_task' t.id %}" class="d-flex gap-1">{% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}"><select name="assigned_to" class="form-select form-select-sm" {% if not is_manager %}disabled{% endif %}>{% if t.assigned_to == 'Unassigned' %}<option selected>Unassigned</option>{% endif %}{% for u in users %}<option {% if u == t.assigned_to %}selected{% endif %}>{{ u }}</option>{% endfor %}</select><select name="status" class="form-select form-select-sm">{% for s in TASK_STATUSES %}<option {% if s == t.status %}selected{% endif %}>{{ s }}</option>{% endfor %}</select><button class="btn btn-sm btn-primary">Save</button></form></td>
+ <td>{% if t.status != 'Resolved' %}{% if is_manager or current_user == t.assigned_to %}<form method="post" action="{% url 'ai_draft' t.id %}">{% csrf_token %}<button class="btn btn-sm btn-outline-primary">Draft customer message</button></form>{% else %}<span class="small-muted">Assigned employee only</span>{% endif %}{% else %}<span class="small-muted">—</span>{% endif %}</td>
+</tr>
+{% empty %}<tr><td colspan="7" class="text-muted">No tasks match these filters.</td></tr>{% endfor %}
+</tbody></table></div>
+{% endblock %}

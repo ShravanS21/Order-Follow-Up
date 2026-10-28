@@ -42,6 +42,7 @@ Then visit <http://127.0.0.1:8000/>. To stop the server, press **Ctrl+C**.
 6. Open **Audit trail** to see recorded assignments, status changes, reassignments, uploads, and rule-setting changes.
 7. Open **Rules & settings** to adjust the unconfirmed-order limit, dispatch-delay limit, high-value threshold, or simulated clock.
 8. On **Tasks**, choose **Draft customer message** to generate an unsent message for the manager or assigned employee to review. On the **Dashboard**, choose **Generate AI daily brief** for a manager-facing summary of the current unresolved workload.
+9. Open **AI Copilot** as the manager to ask about the current workload and the exception playbooks.
 
 ## Optional AI features
 
@@ -50,11 +51,14 @@ AI features use Google's Gemini API. They are optional; all non-AI order, task, 
 1. Create a Gemini API key in [Google AI Studio](https://aistudio.google.com/app/apikey).
 2. Copy `.env.example` to `.env` in this directory.
 3. Open `.env` and set `GEMINI_API_KEY` to your key. The default model is `gemini-3.5-flash-lite`; change `GEMINI_MODEL` only if you have access to another model.
-4. Install updated requirements with `python -m pip install -r requirements.txt`, then restart the app.
+4. Install updated requirements with `python -m pip install -r requirements.txt`, apply migrations with `python manage.py migrate`, and create the playbook embedding index with `python manage.py index_knowledge`.
+5. Start the server with `python manage.py runserver`.
 
 Keep `.env` private and do not include your real API key in a submission or source-control repository. Google's free-tier terms may allow submitted data to be used to improve its products; do not use real sensitive customer information with the free tier. If the key is missing or the API request fails, the app displays an error and does not send a message or alter task data.
 
-The customer-message draft sends the order ID, first name, exception reason, recommended action, and expected-delivery date when available. It does not send the customer's phone number. The daily brief sends aggregate task counts without customer or employee names. Generated text is not sent to customers; an employee must review and copy it manually. The audit trail records that AI text was generated, but does not store the generated content.
+The project includes three AI features: customer follow-up drafts, a daily operations brief, and a manager-only AI Copilot. The Copilot uses Gemini function calling to select from a fixed set of read-only Django ORM tools that return aggregate exception counts; model-supplied SQL and arbitrary database lookups are not accepted. RAG retrieves relevant generic exception playbooks using Gemini embeddings stored in the local SQLite database. Re-run `python manage.py index_knowledge` after changing the playbook guidance.
+
+AI prompts do not include customer names, phone numbers, order IDs, or employee names. Customer drafts use local placeholders that the app fills in after Gemini returns the text. The daily brief sends aggregate task counts only. Copilot prompts and responses are not stored; the audit trail records only that it was used. Generated customer text is never sent automatically and must be reviewed by an employee. Gemini embedding and generation requests require a working API key and available model quota; all non-AI features work without one.
 
 For a repeatable demonstration using `sample_data/sample_orders.csv`, load the sample dataset. This also sets the simulated clock to **21 October 2026 at 10:00**. For another dataset, set the simulated clock under **Rules & settings** before uploading if you want a repeatable result.
 
